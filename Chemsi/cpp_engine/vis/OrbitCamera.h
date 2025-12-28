@@ -106,18 +106,16 @@ struct OrbitCamera {
         }
 
         // Keyboard orbit/zoom only when ImGui does not want the keyboard
-        const bool imgui_captures_kb = io.WantCaptureKeyboard || io.WantTextInput;
+        const bool imgui_captures_kb = io.WantTextInput;
         if (!imgui_captures_kb) {
             const float dt = (float)wall_dt;
             const bool fast = ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift);
             const float mul = fast ? fast_multiplier : 1.0f;
 
-            if (ImGui::IsKeyDown(ImGuiKey_LeftArrow))  yaw_deg   -= yaw_speed_deg_per_s   * dt * mul;
-            if (ImGui::IsKeyDown(ImGuiKey_RightArrow)) yaw_deg   += yaw_speed_deg_per_s   * dt * mul;
-            if (ImGui::IsKeyDown(ImGuiKey_UpArrow))    pitch_deg += pitch_speed_deg_per_s * dt * mul;
-            if (ImGui::IsKeyDown(ImGuiKey_DownArrow))  pitch_deg -= pitch_speed_deg_per_s * dt * mul;
-
-            pitch_deg = std::clamp(pitch_deg, -85.0f, 85.0f);
+            if (ImGui::IsKeyDown(ImGuiKey_LeftArrow))  yaw_deg -= yaw_speed_deg_per_s * dt * mul;
+            if (ImGui::IsKeyDown(ImGuiKey_RightArrow)) yaw_deg += yaw_speed_deg_per_s * dt * mul;
+            if (ImGui::IsKeyDown(ImGuiKey_UpArrow))    dist    -= zoom_speed_per_s    * dt * mul;
+            if (ImGui::IsKeyDown(ImGuiKey_DownArrow))  dist    += zoom_speed_per_s    * dt * mul;
 
             if (ImGui::IsKeyDown(ImGuiKey_W)) dist -= zoom_speed_per_s * dt * mul;
             if (ImGui::IsKeyDown(ImGuiKey_S)) dist += zoom_speed_per_s * dt * mul;
