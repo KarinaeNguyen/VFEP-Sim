@@ -1,0 +1,125 @@
+cmake_minimum_required(VERSION 3.20)
+project(CHEMSI LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+# ============================================================
+# Build options
+# ============================================================
+# The visualizer pulls GUI dependencies (OpenGL/GLFW/ImGui/ImPlot). Make it
+# optional so a "core simulation" build works out-of-the-box.
+option(CHEMSI_BUILD_VIS "Build CHEMSI visualizer (GLFW/OpenGL/ImGui)" OFF)
+
+# ============================================================
+# Core library
+# ============================================================
+add_library(chemsi
+  src/chemistry.cpp
+  src/LiIonRunaway.cpp
+  src/Reactor.cpp
+  src/Simulation.cpp
+  src/Aerodynamics.cpp
+  src/Suppression.cpp
+  src/Ventilation.cpp
+)
+target_include_directories(chemsi PUBLIC ${CMAKE_SOURCE_DIR}/include)
+
+# ============================================================
+# Main simulation (console)
+# ============================================================
+add_executable(VFEP_Sim src/main.cpp)
+target_link_libraries(VFEP_Sim PRIVATE chemsi)
+
+# ============================================================
+# Tests
+# ============================================================
+enable_testing()
+add_executable(RunTests tests/TestAtom.cpp)
+target_link_libraries(RunTests PRIVATE chemsi)
+add_test(NAME RunTests COMMAND RunTests)
+
+# ============================================================
+# Visualization executable: GLFW + OpenGL + ImGui (+ ImPlot)
+# ============================================================
+if (CHEMSI_BUILD_VIS)
+  include(FetchContent)
+
+  # --- OpenGL (platform-correct target: OpenGL::GL) ---
+  find_package(OpenGL REQUIRED)
+
+  # --- GLFW (CMake project; provides target "glfw") ---
+  set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
+  set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+  set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+  set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
+
+  FetchContent_Declare(
+    glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw.git
+    GIT_TAG        3.4
+  )
+  FetchContent_MakeAvailable(glfw)
+
+  # --- Dear ImGui ---
+  FetchContent_Declare(
+    imgui
+    GIT_REPOSITORY https://github.com/ocornut/imgui.git
+    GIT_TAG        v1.91.1
+  )
+  FetchContent_MakeAvailable(imgui)
+
+  # --- ImPlot ---
+  FetchContent_Declare(
+    implot
+    GIT_REPOSITORY https://github.com/epezent/implot.git
+    GIT_TAG        v0.16
+  )
+  FetchContent_MakeAvailable(implot)
+
+  # --- UI static library (ImGui + backends + ImPlot) ---
+  add_library(imgui_lib STATIC
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    # ${imgui_SOURCE_DIR}/imgui_demo.cpp
+
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp
+
+    ${implot_SOURCE_DIR}/implot.cpp
+    ${implot_SOURCE_DIR}/implot_items.cpp
+    # ${implot_SOURCE_DIR}/implot_demo.cpp
+  )
+
+  target_include_directories(imgui_lib PUBLIC
+    ${imgui_SOURCE_DIR}
+    ${imgui_SOURCE_DIR}/backends
+    ${implot_SOURCE_DIR}
+  )
+
+  target_link_libraries(imgui_lib PUBLIC
+    glfw
+    OpenGL::GL
+  )
+
+  # Optional: define an OpenGL loader if your environment requires it.
+  # target_compile_definitions(imgui_lib PRIVATE IMGUI_IMPL_OPENGL_LOADER_GL3W)
+
+  # --- Visualizer executable ---
+  add_executable(VFEP_Vis
+    vis/main_vis.cpp
+  )
+
+  target_link_libraries(VFEP_Vis PRIVATE
+    chemsi
+    imgui_lib
+  )
+
+  target_include_directories(VFEP_Vis PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${CMAKE_SOURCE_DIR}/vis
+  )
+endif()
