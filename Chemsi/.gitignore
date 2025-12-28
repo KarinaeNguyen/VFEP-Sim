@@ -1,0 +1,21 @@
+# Build artifacts
+build/
+*.exe
+*.out
+*.obj
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Logs & generated data
+data/outputs/*.csv
+
+# VS Code
+.vscode/
+
+# OS junk
+.DS_Store
+Thumbs.db
